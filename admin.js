@@ -5,9 +5,6 @@ admin.use(express.json());
 admin.use(express.urlencoded({ extended: true }));
 const nodemailer = require("nodemailer");
 ;
-
-
-
 ////////////////mysql connection//////////////////
 
 const connection = mysql.createConnection({
@@ -23,12 +20,7 @@ connection.connect((error)=>{
     console.log('connected'+connection.threadId);
 });
 
-
-
-
 ///////////////////////insert data/////////////////////
-
-
 
 admin.post('/insert', (req, res) => {
     
@@ -158,36 +150,103 @@ admin.post('/insert', (req, res) => {
 
 admin.put('/update/:id', (req, res) => {
     const ID = req.params.id;
-    const { name, Email_Address } = req.body;
+    const {
+        full_name,
+        date_of_birth,
+        gender,
+        adress, // Assuming "adress" is a typo and should be "address"
+        contact_number,
+        email_address,
+        department,
+        designation,
+        date_of_joining,
+        base_salary,
+        bank_account_details,
+        degree,
+        institution_name,
+        year_of_graduation,
+        previous_employers,
+        job_titles,
+        employment_duration,
+        id_proof,
+        resume,
+        offer_letter_appointment_letter
+    } = req.body;
 
-    connection.query(
-        'UPDATE employeerecords SET Full_Name = ?, Email_Address = ? WHERE Employee_ID = ?',
-        [name, Email_Address, ID], // Correct order of values
-        (error, results) => {
-            if (error) {
-                console.error("Error updating database:", error);
-                return res.status(500).json({
-                    message: 'Error updating database',
-                    error
-                });
-            }
+    // SQL Query for updating all fields
+    const updateQuery = `
+        UPDATE employeerecords 
+        SET 
+            Full_Name = ?, 
+            Date_of_Birth = ?, 
+            Gender = ?, 
+            Adress = ?, 
+            Contact_Number = ?, 
+            Email_Address = ?, 
+            Department = ?, 
+            Designation = ?, 
+            Date_of_Joining = ?, 
+            Base_Salary = ?, 
+            Bank_Account_Details = ?, 
+            Degree = ?, 
+            Institution_Name = ?, 
+            Year_of_Graduation = ?, 
+            Previous_Employers = ?, 
+            Job_Titles = ?, 
+            Employment_Duration = ?, 
+            ID_Proof = ?, 
+            Resume = ?, 
+            Offer_Letter_Appointment_Letter = ? 
+        WHERE Employee_ID = ?
+    `;
 
-            if (results.affectedRows === 0) {
-                return res.status(404).json({
-                    message: 'No employee found with the given ID.'
-                });
-            }
+    // Values in the correct order for the query
+    const values = [
+        full_name,
+        date_of_birth,
+        gender,
+        adress,  // Address field
+        contact_number,
+        email_address,
+        department,
+        designation,
+        date_of_joining,
+        base_salary,
+        bank_account_details,
+        degree,
+        institution_name,
+        year_of_graduation,
+        previous_employers,
+        job_titles,
+        employment_duration,
+        id_proof,
+        resume,
+        offer_letter_appointment_letter,
+        ID
+    ];
 
-            return res.status(200).json({
-                message: 'Updated successfully',
-                results
+    // Execute the update query
+    connection.query(updateQuery, values, (error, results) => {
+        if (error) {
+            console.error("Error updating database:", error);
+            return res.status(500).json({
+                message: 'Error updating database',
+                error
             });
         }
-    );
+
+        if (results.affectedRows === 0) {
+            return res.status(404).json({
+                message: 'No employee found with the given ID.'
+            });
+        }
+
+        return res.status(200).json({
+            message: 'Updated successfully',
+            results
+        });
+    });
 });
-
-
-
 
 ///////////////////////delete records//////////////////
 
@@ -250,13 +309,6 @@ admin.get("/pending-leaves", (req, res) => {
         res.json({ success: true, data: results });
     });
 });
-
-
-
-
-
-
-
 
 //////////////////////////approve or reject///////////////////////////
 
@@ -396,7 +448,7 @@ admin.post("/process-salary/:Employee_ID", (req, res) => {
         ) l ON ss.employee_id = l.employee_id
         LEFT JOIN (  
             SELECT employee_id, SUM(credit_amount) AS credit_amount 
-            FROM credit 
+            FROM credit ;
             WHERE status = 'pending'  
             GROUP BY employee_id
         ) c ON ss.employee_id = c.employee_id
@@ -532,12 +584,6 @@ function sendPayslipEmail(toEmail, htmlContent, callback) {
     transporter.sendMail(mailOptions, callback);
 }
 
-
-
-
-
-
-
 /////////job openings/////////////
 
 admin.post("/jobs", (req, res) => {
@@ -590,27 +636,21 @@ admin.get("/jobs/:id", (req, res) => {
 });
 
 
-admin.get("/applications/:job_id", (req, res) => {
-    const { job_id } = req.params;
+/////////////////display applications//////////////////////
 
-    // Check if the job exists
-    const checkSql = "SELECT COUNT(*) AS count FROM jobs WHERE id = ?";
-    connection.query(checkSql, [job_id], (err, result) => {
-        if (err) return res.status(500).json({ success: false, error: err.message });
+admin.get("/applications", (req, res) => {
+  // SQL Query to fetch all applications
+  const fetchSql = "SELECT * FROM applications";
 
-        if (result[0].count === 0) {
-            return res.status(404).json({ success: false, message: "Job ID not found!" });
-        }
+  connection.query(fetchSql, (err, results) => {
+      if (err) {
+          return res.status(500).json({ success: false, error: err.message });
+      }
 
-        // If job exists, fetch applications
-        const fetchSql = "SELECT * FROM applications WHERE job_id = ?";
-        connection.query(fetchSql, [job_id], (err, results) => {
-            if (err) return res.status(500).json({ success: false, error: err.message });
-
-            res.json({ success: true, applications: results });
-        });
-    });
+      res.json({ success: true, applications: results });
+  });
 });
+
 
 
 // 🟢 6️⃣ Update Application Status
@@ -757,24 +797,6 @@ admin.delete("/interviews/:id", (req, res) => {
 
 ///////////////////issues notify//////////////////
 
-
-admin.post("/issues", (req, res) => {
-    const { employee_id, title, description, category } = req.body;
-    
-    if (!employee_id || !title || !description || !category) {
-        return res.status(400).json({ success: false, message: "All fields are required!" });
-    }
-    
-    const sql = "INSERT INTO issues (employee_id, title, description, category) VALUES (?, ?, ?, ?)";
-    
-    connection.query(sql, [employee_id, title, description, category], (err, result) => {
-        if (err) return res.status(500).json({ success: false, error: err.message });
-        res.json({ success: true, message: "Issue reported successfully!", issueId: result.insertId });
-    });
-});
-
-
-
 admin.get("/issues", (req, res) => {
     connection.query("SELECT * FROM issues ORDER BY reported_date DESC", (err, results) => {
         if (err) return res.status(500).json({ success: false, error: err.message });
@@ -795,9 +817,7 @@ admin.get("/issues/:id", (req, res) => {
 });
 
 
-   
-
-admin.put("/issues/:id", (req, res) => {
+   admin.put("/issues/:id", (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
     
@@ -816,9 +836,6 @@ admin.put("/issues/:id", (req, res) => {
 });
 
 
-
-
-
 admin.delete("/issues/:id", (req, res) => {
     const { id } = req.params;
     
@@ -830,8 +847,5 @@ admin.delete("/issues/:id", (req, res) => {
     });
 });
 
-
-
-
-
 module.exports = admin;
+ 
